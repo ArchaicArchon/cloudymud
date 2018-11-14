@@ -1,2 +1,2 @@
 # cloudymud
-Soon this will be cloudy mud, a mud and chat server written in haskell
+run ./install.sh to install cloudy-datatypes and cloudy-front
