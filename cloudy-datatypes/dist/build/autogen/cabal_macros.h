@@ -35,8 +35,8 @@
   (major1) == 0 && (major2) <  10 || \
   (major1) == 0 && (major2) == 10 && (minor) <= 8)
 
-/* package cgi-3001.3.0.2 */
-#define VERSION_cgi "3001.3.0.2"
+/* package cgi-3001.3.0.3 */
+#define VERSION_cgi "3001.3.0.3"
 #define MIN_VERSION_cgi(major1,major2,minor) (\
   (major1) <  3001 || \
   (major1) == 3001 && (major2) <  3 || \
@@ -175,7 +175,7 @@
   (major1) == 2 && (major2) <  30 || \
   (major1) == 2 && (major2) == 30 && (minor) <= 0)
 
-#define CURRENT_COMPONENT_ID "cloudy-datatypes-0.1.0.0-AmoMtzhlfbAAVPoXpmXysC"
+#define CURRENT_COMPONENT_ID "cloudy-datatypes-0.1.0.0-9711KPNl1R9I4LvOh8191Q"
 
-#define CURRENT_PACKAGE_KEY "cloudy-datatypes-0.1.0.0-AmoMtzhlfbAAVPoXpmXysC"
+#define CURRENT_PACKAGE_KEY "cloudy-datatypes-0.1.0.0-9711KPNl1R9I4LvOh8191Q"
 

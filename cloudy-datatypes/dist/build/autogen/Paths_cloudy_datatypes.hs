@@ -30,7 +30,7 @@ version = Version [0,1,0,0] []
 bindir, libdir, dynlibdir, datadir, libexecdir, sysconfdir :: FilePath
 
 bindir     = "/home/vagrant/.cabal/bin"
-libdir     = "/home/vagrant/.cabal/lib/x86_64-linux-ghc-8.0.2/cloudy-datatypes-0.1.0.0-AmoMtzhlfbAAVPoXpmXysC"
+libdir     = "/home/vagrant/.cabal/lib/x86_64-linux-ghc-8.0.2/cloudy-datatypes-0.1.0.0-9711KPNl1R9I4LvOh8191Q"
 dynlibdir  = "/home/vagrant/.cabal/lib/x86_64-linux-ghc-8.0.2"
 datadir    = "/home/vagrant/.cabal/share/x86_64-linux-ghc-8.0.2/cloudy-datatypes-0.1.0.0"
 libexecdir = "/home/vagrant/.cabal/libexec"
