@@ -1,0 +1,1 @@
+fromList [("x","hello"),("y","helloworld"),("z","x^2+5"),("pet","threebears")]

@@ -1,0 +1,83 @@
+<html>
+<head>
+
+<style>
+body {
+    color: black;
+    background-color: white;
+    font-size: 2em;
+    font-family: "Lucida Console";
+    background-image: url("/clouds.jpg");
+    /* background-image: url("/www.princeton.edu/sites/default/files/styles/half_2x/public/images/2018/01/clouds-19.jpg?itok=Qfa5j6NW"); */
+    /* background-image: url("https://i.ytimg.com/vi/obclZDUAeSY/maxresdefault.jpg"); */
+    background-repeat: no-repeat;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+h1 {
+    text-align: center;
+}
+
+#input {
+    font-size: 1em;
+    font-family: "Lucida Console";
+    width: 80%;
+}
+</style>
+
+</head>
+<title>Cloudy Chat</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js">
+</script>
+<script>
+$(document).ready(function() {
+    var ws = new WebSocket("ws://" + location.host + "/socket");
+    window.onbeforeunload = function() {
+    websocket.onclose = function () {}; // disable onclose handler first
+    ws.close()
+    };
+    /*
+    ws.onOpen = function() {
+    var timerID = 0; 
+    function keepAlive() { 
+        var timeout = 20000;  
+        if (webSocket.readyState == webSocket.OPEN) {  
+            webSocket.send('');  
+        }  
+        timerId = setTimeout(keepAlive, timeout);  
+        }
+    keepAlive();  
+    }
+    */
+    ws.onmessage = function(e) { 
+        var string = e.data;
+        var output = string.replace(/:\)/g,'<object type="image/svg+xml" data="/files/happy.svg" height=32 width=32></object>');
+        $('#list').append('<li>' + output + '</li>'); 
+        window.scrollTo(0, document.body.scrollHeight || document.documentElement.scrollHeight);
+        };
+    $('#input').keydown(function(event) {
+        if (event.keyCode == 13) {
+            /*
+            $('#list').append('<li>' + $('#input').val() + '</li>');
+            */
+             ws.send($('input').val());
+            $('#input').val('');
+            return false;
+         }
+    });
+});
+</script>
+<body>
+<h1>Cloudy Chat</h1>
+<ul id="list" style="list-style-type:none">
+<li>apples</li>
+<li>oranges</li>
+<li>kiwis</li>
+</ul>
+<ul style="list-style-type:none">
+<li>Chat: <input id="input" type="text"></li>
+</ul>
+</body>
+</html>
+
