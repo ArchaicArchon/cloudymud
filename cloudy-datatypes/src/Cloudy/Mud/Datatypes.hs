@@ -68,6 +68,10 @@ data Die = Die
   deriving (Show,Eq,Ord,Generic,Typeable)
 instance (Binary Die)
 
+data CoreModified = CoreModified
+  deriving (Show,Eq,Ord,Generic,Typeable)
+instance (Binary CoreModified) 
+
 makeNodeId :: String -> NodeId
 makeNodeId addr = NodeId . EndPointAddress . BS.concat $ [BS.pack addr,BS.pack ":0"]
 
