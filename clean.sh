@@ -1,18 +1,17 @@
 #!/bin/bash
-cabal update
 cd cloudy-datatypes
-cabal install
+cabal clean
 cd ..
 cd cloudy-front
-cabal install
+cabal clean
 cd ..
 cd cloudy-core
-cabal install
+cabal clean
 cd ..
 cd cloudy-web 
-cabal install
+cabal clean
 cd ..
 cd cloudy-watcher
-cabal install
+cabal clean
 cd ..
-echo Cloudy Mud Installed!
+echo Cloudy Mud Cleaned and Ready for a Commit!
