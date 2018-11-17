@@ -10,18 +10,35 @@ import Control.Distributed.Process.Node
 import Control.Distributed.Process.Serializable
 import qualified Data.ByteString.Char8 as BS
 import Control.Concurrent.Chan
+import Data.Time.Clock
+import Data.Fixed
 
 import Cloudy.Mud.Misc
 
 import Cloudy.Mud.Datatypes
 
+{-
+WatchConfig	 
 
+    confDebounce :: Debounce
+
+    Debounce configuration
+    confPollInterval :: Int
+
+    Polling interval if polling is used (microseconds)
+    confUsePolling :: Bool
+-}
+
+config = WatchConfig {
+  confDebounce = Debounce 3,
+  confPollInterval = 1,
+  confUsePolling = False
+  }
 
 coreModified :: Event -> Bool
 coreModified (Modified filepath time something) = 
   filepath == "/home/vagrant/.cabal/bin/cloudy-core"
 coreModified _ = False 
-
 
 chanReader :: Chan Event -> IO ()
 chanReader channel = do
@@ -33,7 +50,7 @@ chanReader channel = do
 main = do
   channel <- Control.Concurrent.Chan.newChan
   forkIO (chanReader channel) 
-  withManager $ \mgr -> do
+  withManagerConf config $ \mgr -> do
     -- start a watching job (in the background)
     watchDirChan
       mgr          -- manager
