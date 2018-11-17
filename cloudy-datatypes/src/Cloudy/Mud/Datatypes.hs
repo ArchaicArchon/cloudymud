@@ -86,3 +86,9 @@ coreHostname = "127.0.0.1"
 corePort = "10600"
 
 coreNode = makeNodeId $ coreHostname ++ ":" ++ corePort
+
+watcherHostname = "127.0.0.1"
+
+watcherPort = "107000"
+
+watcherNode = makeNodeId $ watcherHostname ++ ":" ++ watcherPort

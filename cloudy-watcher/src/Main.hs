@@ -1,8 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-} -- for FilePath literals
 
 import System.FSNotify
-import Control.Concurrent (threadDelay)
+import Control.Concurrent (forkIO,threadDelay)
 import Control.Monad (forever)
+import Network.Transport.TCP (createTransport, defaultTCPParameters)
+import Control.Concurrent (threadDelay)
+import Control.Distributed.Process hiding (catch)
+import Control.Distributed.Process.Node
+import Control.Distributed.Process.Serializable
+import qualified Data.ByteString.Char8 as BS
+import Control.Concurrent.Chan
+
+import Cloudy.Mud.Misc
+
+import Cloudy.Mud.Datatypes
+
+
 
 coreModified :: Event -> Bool
 coreModified (Modified filepath time something) = 
@@ -10,14 +23,23 @@ coreModified (Modified filepath time something) =
 coreModified _ = False 
 
 
-main =
+chanReader :: Chan Event -> IO ()
+chanReader channel = do
+  event <- readChan channel
+  print event
+  print "Core Modified!"
+  chanReader channel
+
+main = do
+  channel <- Control.Concurrent.Chan.newChan
+  forkIO (chanReader channel) 
   withManager $ \mgr -> do
     -- start a watching job (in the background)
-    watchDir
+    watchDirChan
       mgr          -- manager
       "/home/vagrant/.cabal/bin"          -- directory to watch
       coreModified -- predicate
-      (\x -> do print x ; print "Core Modified")       -- action
+      channel       -- action
     
     --sleep forever (until interrupted)
     forever $ threadDelay 1000000
