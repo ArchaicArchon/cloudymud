@@ -107,6 +107,7 @@ data Event
 	= EventLook Id BS.ByteString
 	| EventLeaves Id BS.ByteString
 	| EventArrives Id BS.ByteString
+	| EventNotify BS.ByteString
  deriving (Show,Eq,Ord,Generic,Typeable)
 instance (Binary Event)
 
@@ -310,6 +311,10 @@ initialization = do
 	liftIO . BS.putStrLn $ "Starting Demultiplexer..."
 	demultiplexPid <- spawnLocal $ demultiplex tvActorMap
 	register "demultiplex" demultiplexPid
+	liftIO . BS.putStrLn $ "Messaging all Actors that we are up"
+	actorMap <- liftIO . atomically . readTVar $ tvActorMap
+	mapM_ (\pid-> send pid (EventNotify "The Core is Up!")) actorMap 
+
 
 -- TODO: removing playerMap needs to be done 
 demultiplex :: TVar (Map.Map Id ProcessId) -> Process ()
@@ -383,6 +388,11 @@ playerActor identifier tvActorMap tvMudWorld = do
 			then return ()
 			else mapM_ (\name -> playerOutput name message) maybeName 
 		playerActor identifier tvActorMap tvMudWorld
+	eventHandler (EventNotify message) = do
+		let maybeName = id2name identifier
+		mapM_ (\name -> playerOutput name message) maybeName 
+		playerActor identifier tvActorMap tvMudWorld
+
 	eventHandler _ = playerActor identifier tvActorMap tvMudWorld
 
 
