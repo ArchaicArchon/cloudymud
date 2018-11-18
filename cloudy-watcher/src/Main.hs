@@ -3,6 +3,7 @@
 import System.FSNotify
 import Control.Concurrent (forkIO,threadDelay)
 import Control.Monad (forever)
+{-
 import Network.Transport.TCP (createTransport, defaultTCPParameters)
 import Control.Concurrent (threadDelay)
 import Control.Distributed.Process hiding (catch)
@@ -12,10 +13,14 @@ import qualified Data.ByteString.Char8 as BS
 import Control.Concurrent.Chan
 import Data.Time.Clock
 import Data.Fixed
+import Network
+import qualified Network.Socket as NS
+import System.IO
+-}
 
-import Cloudy.Mud.Misc
+-- import Cloudy.Mud.Misc
 
-import Cloudy.Mud.Datatypes
+-- import Cloudy.Mud.Datatypes
 
 {-
 WatchConfig	 
@@ -28,6 +33,10 @@ WatchConfig
     Polling interval if polling is used (microseconds)
     confUsePolling :: Bool
 -}
+{-
+
+generateHostName :: NS.ServiceName -> (HostName, NS.ServiceName)
+generateHostName serviceName = (frontHostname,serviceName)
 
 config = WatchConfig {
   confDebounce = Debounce 3,
@@ -40,25 +49,43 @@ coreModified (Modified filepath time something) =
   filepath == "/home/vagrant/.cabal/bin/cloudy-core"
 coreModified _ = False 
 
-chanReader :: Chan Event -> IO ()
+
+chanReader :: Control.Concurrent.Chan.Chan Event -> Process ()
 chanReader channel = do
-  event <- readChan channel
-  print event
-  print "Core Modified!"
+  liftIO $ print "chanReader is running!"
+  event <- liftIO $ Control.Concurrent.Chan.readChan channel
+  liftIO . BS.putStrLn . BS.pack . show $ event
+  liftIO . BS.putStrLn . BS.pack . show $ "Core Modified!"
+  liftIO . hFlush $ stdout 
   chanReader channel
 
+-}
+
+main :: IO ()
 main = do
-  channel <- Control.Concurrent.Chan.newChan
-  forkIO (chanReader channel) 
-  withManagerConf config $ \mgr -> do
+  print "starting manager...."
+  --liftIO $ withManagerConf config $ \mgr -> do
+  withManager $ \mgr -> do
     -- start a watching job (in the background)
-    watchDirChan
+    --watchDirChan
+    watchDir
       mgr          -- manager
       "/home/vagrant/.cabal/bin"          -- directory to watch
-      coreModified -- predicate
-      channel       -- action
+      (const True) --coreModified -- predicate
+      print       -- action
+  print "ran manager does this ever get run?" 
+  {-
+  BS.putStrLn "Starting Cloudy Watcher (Version 0.0.1)...."
+  Right t <- createTransport watcherHostname watcherPort generateHostName defaultTCPParameters
+  node <- newLocalNode t initRemoteTable
+  BS.putStrLn "We will now start the cloudy watcher...."
+  channel <- Control.Concurrent.Chan.newChan
+  forkProcess node (chanReader channel) 
+  print "spawned chanReader"
+  -} 
+  forever . threadDelay $ (1000*1000*1000)
+  print "This SHOULD NEVER BE PRINTED/EXECUTED!"
+  return () 
     
-    --sleep forever (until interrupted)
-    forever $ threadDelay 1000000
 
 
