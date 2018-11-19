@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-} -- for FilePath literals
 
 import System.FSNotify
-import Control.Concurrent (forkIO,threadDelay)
+import Control.Concurrent (threadDelay)
 import Control.Monad (forever)
 {-
 import Network.Transport.TCP (createTransport, defaultTCPParameters)
@@ -33,6 +33,7 @@ WatchConfig
     Polling interval if polling is used (microseconds)
     confUsePolling :: Bool
 -}
+
 {-
 
 generateHostName :: NS.ServiceName -> (HostName, NS.ServiceName)
@@ -64,16 +65,10 @@ chanReader channel = do
 main :: IO ()
 main = do
   print "starting manager...."
-  --liftIO $ withManagerConf config $ \mgr -> do
+  print "do we get run?" 
   withManager $ \mgr -> do
-    -- start a watching job (in the background)
-    --watchDirChan
-    watchDir
-      mgr          -- manager
-      "/home/vagrant/.cabal/bin"          -- directory to watch
-      (const True) --coreModified -- predicate
-      print       -- action
-  print "ran manager does this ever get run?" 
+    watchDir mgr "/home/vagrant/.cabal/bin" (const True) print       -- action
+  --print "ran manager does this ever get run?" 
   {-
   BS.putStrLn "Starting Cloudy Watcher (Version 0.0.1)...."
   Right t <- createTransport watcherHostname watcherPort generateHostName defaultTCPParameters
@@ -83,7 +78,7 @@ main = do
   forkProcess node (chanReader channel) 
   print "spawned chanReader"
   -} 
-  forever . threadDelay $ (1000*1000*1000)
+    forever . threadDelay $ (1000*1000)
   print "This SHOULD NEVER BE PRINTED/EXECUTED!"
   return () 
     
