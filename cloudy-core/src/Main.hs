@@ -311,10 +311,27 @@ initialization = do
 	liftIO . BS.putStrLn $ "Starting Demultiplexer..."
 	demultiplexPid <- spawnLocal $ demultiplex tvActorMap
 	register "demultiplex" demultiplexPid
+	liftIO . BS.putStrLn $ "Starting Storage Server..."
+	storagePid <- spawnLocal $ storage tvActorMap tvMudWorld
+	register "storage" storagePid 
 	liftIO . BS.putStrLn $ "Messaging all Actors that we are up"
 	actorMap <- liftIO . atomically . readTVar $ tvActorMap
-	mapM_ (\pid-> send pid (EventNotify "The Core is Up!")) actorMap 
+	mapM_ (\pid -> send pid (EventNotify "The Core is Up!")) actorMap 
 
+
+notifyAllActors :: TVar (Map.Map Id ProcessId) -> BS.ByteString -> Process ()
+notifyAllActors tvActorMap message = do
+	actorMap <- liftIO . atomically . readTVar $ tvActorMap
+	mapM_ (\pid -> send pid (EventNotify message)) actorMap 
+
+storage :: TVar (Map.Map Id ProcessId) -> TVar MudWorld -> Process ()
+storage tvActorMap tvMudWorld = do 
+	receiveWait [match coreModified] 
+        where
+	coreModified :: CoreModified -> Process ()
+	coreModified CoreModified = do
+		notifyAllActors tvActorMap "The Core has been MODIFIED!" 
+		storage tvActorMap tvMudWorld 
 
 -- TODO: removing playerMap needs to be done 
 demultiplex :: TVar (Map.Map Id ProcessId) -> Process ()

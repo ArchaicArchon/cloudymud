@@ -70,7 +70,7 @@ main = do
   print "spawned chanReader"
   print "starting manager...."
   print "do we get run?" 
-  withManager $ \mgr -> do
+  withManagerConf config $ \mgr -> do
     watchDirChan mgr "/home/vagrant/.cabal/bin" coreModified channel       -- action
     forever . threadDelay $ (1000*1000)
   print "ran manager does this ever get run?" 
