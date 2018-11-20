@@ -54,7 +54,8 @@ chanReader channel = do
   event <- liftIO $ Control.Concurrent.Chan.readChan channel
   liftIO . BS.putStrLn . BS.pack . show $ event
   liftIO . BS.putStrLn . BS.pack . show $ "Core Modified!"
-  liftIO . hFlush $ stdout 
+  liftIO . hFlush $ stdout
+  nsendRemote coreNode "storage" CoreModified  
   chanReader channel
 
 
