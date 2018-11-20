@@ -3,7 +3,6 @@
 import System.FSNotify
 import Control.Concurrent (threadDelay)
 import Control.Monad (forever)
-{-
 import Network.Transport.TCP (createTransport, defaultTCPParameters)
 import Control.Concurrent (threadDelay)
 import Control.Distributed.Process hiding (catch)
@@ -16,11 +15,10 @@ import Data.Fixed
 import Network
 import qualified Network.Socket as NS
 import System.IO
--}
 
--- import Cloudy.Mud.Misc
+import Cloudy.Mud.Misc
 
--- import Cloudy.Mud.Datatypes
+import Cloudy.Mud.Datatypes
 
 {-
 WatchConfig	 
@@ -34,7 +32,6 @@ WatchConfig
     confUsePolling :: Bool
 -}
 
-{-
 
 generateHostName :: NS.ServiceName -> (HostName, NS.ServiceName)
 generateHostName serviceName = (frontHostname,serviceName)
@@ -60,16 +57,9 @@ chanReader channel = do
   liftIO . hFlush $ stdout 
   chanReader channel
 
--}
 
 main :: IO ()
 main = do
-  print "starting manager...."
-  print "do we get run?" 
-  withManager $ \mgr -> do
-    watchDir mgr "/home/vagrant/.cabal/bin" (const True) print       -- action
-  --print "ran manager does this ever get run?" 
-  {-
   BS.putStrLn "Starting Cloudy Watcher (Version 0.0.1)...."
   Right t <- createTransport watcherHostname watcherPort generateHostName defaultTCPParameters
   node <- newLocalNode t initRemoteTable
@@ -77,8 +67,12 @@ main = do
   channel <- Control.Concurrent.Chan.newChan
   forkProcess node (chanReader channel) 
   print "spawned chanReader"
-  -} 
+  print "starting manager...."
+  print "do we get run?" 
+  withManager $ \mgr -> do
+    watchDirChan mgr "/home/vagrant/.cabal/bin" coreModified channel       -- action
     forever . threadDelay $ (1000*1000)
+  print "ran manager does this ever get run?" 
   print "This SHOULD NEVER BE PRINTED/EXECUTED!"
   return () 
     
