@@ -10,6 +10,7 @@ import Text.Parsec hiding (spaces)
 data CoreCommand = 
 	CommandLook |
 	CommandGo BS.ByteString |
+	CommandLookAt BS.ByteString |
 	CommandUnclear BS.ByteString
 	deriving (Show,Eq,Ord)
 
@@ -41,6 +42,15 @@ parseLook = do
 
 ---}
 
+parseLookAt = do
+	maybeSpaces 
+	string "look"
+	maybeSpaces
+	item <- word
+	maybeSpaces
+	eof
+	return (CommandLookAt (BS.pack item))
+
 parseGo = do
 	maybeSpaces
 	string "go"
@@ -57,6 +67,7 @@ parseUnclear = do
 
 coreCommand 
 	= try parseLook 
+	<|> try parseLookAt 
 	<|> try parseGo 
 	<|> parseUnclear
 

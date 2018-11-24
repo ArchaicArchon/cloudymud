@@ -115,6 +115,7 @@ instance (Binary Event)
 data Id 
   = Player BS.ByteString
   | Room BS.ByteString Integer Integer Integer
+  | Item Integer
   deriving (Read,Show,Eq,Ord,Generic,Typeable)
 instance (Binary Id)
  -- identifier for actors/processes and objects in the database
@@ -131,7 +132,8 @@ data MudField
   | FieldRoomDescription
   | FieldGroundDescription
   | FieldLocation 
-  | FieldExits 
+  | FieldExits
+  | FieldNames 
   deriving (Read,Show,Eq,Ord,Generic,Typeable)
 instance (Binary MudField)
 
@@ -141,6 +143,7 @@ data MudValue
   | MudListOfId [Id]
   | MudLocation Location
   | MudMapOfExits (Map.Map BS.ByteString MudExit)
+  | MudListOfString [BS.ByteString]
   deriving (Read,Show,Eq,Ord,Generic,Typeable)
 instance (Binary MudValue)
 
@@ -168,7 +171,7 @@ room0 = Map.fromList [
   (FieldId,MudId (Room "main" 0 0 0)),
   (FieldRoomTitle,MudString "Central Square"),
   (FieldRoomDescription,MudString "This is the center of the city\nIt all begins here..."),
-  (FieldContents,MudListOfId [(Player "megabug"),(Player player2name)]),
+  (FieldContents,MudListOfId [(Player "megabug"),(Player player2name),(Item 100)]),
   (FieldExits,MudMapOfExits (Map.fromList []))
   ]
 
@@ -202,12 +205,18 @@ player2 = Map.fromList [
   (FieldContents,MudListOfId [])
   ]
 
-
+goldenOrb :: Map.Map MudField MudValue
+goldenOrb = Map.fromList [
+  (FieldId,MudId (Item 100)),
+  (FieldGroundDescription,MudString "the golden orb lies here."),
+  (FieldLocation,MudLocation (Location (Room "main" 0 0 0) "contents")),
+  (FieldNames,MudListOfString ["gold","golden"])
+  ]
 
 initMudWorld :: MudWorld 
 initMudWorld = Map.fromList . zip (fmap byId list) $ list
   where
-  list = [room0,room1,playerMegabug,player2]
+  list = [room0,room1,playerMegabug,player2,goldenOrb]
   byId :: Map.Map MudField MudValue -> Id 
   byId item = fromJust $ item ^? ix FieldId . _MudId 
 
@@ -380,7 +389,9 @@ playerActor identifier tvActorMap tvMudWorld = do
 				nsendRemote frontNode "chatter" (NameAndUserOutput name "parser error!")
 			Right CommandLook -> do
 				--nsendRemote frontNode "chatter" (NameAndUserOutput name "You look around.")
-				playerLook name identifier tvActorMap tvMudWorld 
+				playerLook name identifier tvActorMap tvMudWorld
+			Right (CommandLookAt item) -> do
+				playerLookAt name identifier tvActorMap tvMudWorld item 
 			Right (CommandGo direction) -> do
 				playerGo name identifier tvActorMap tvMudWorld direction
 			Right _ -> do
@@ -574,6 +585,51 @@ newline = "\r\n"
 outputError :: String -> Either SomeException a -> IO () 
 outputError string (Left e) = putStrLn $ string ++ (displayException e) 
 outputError string _ = return ()
+
+
+getPlayerContents :: Id -> MudWorld -> Maybe [Id] 
+getPlayerContents identifier mudWorld =
+   mudWorld ^? ix identifier . ix FieldContents . _MudListOfId  
+
+getRoomContents :: Id -> MudWorld -> Maybe [Id] 
+getRoomContents identifier mudWorld = 
+	let maybeRoomLocation = mudWorld ^? ix identifier . ix FieldLocation in
+	let maybeRoomId = join . fmap location2id $ maybeRoomLocation in
+	join . fmap (\room -> mudWorld ^? ix room . ix FieldContents . _MudListOfId) $ maybeRoomId
+
+safeIndex :: Integer -> [a] -> Maybe a
+safeIndex _ [] = Nothing
+safeIndex 0 (x:xs) = Just x
+safeIndex n (x:xs) = safeIndex (n - 1) xs 
+	
+playerLookAt :: BS.ByteString -> Id -> TVar (Map.Map id ProcessId) -> TVar MudWorld -> BS.ByteString -> Process ()
+playerLookAt playerName identifier tvActorMap tvMudWorld item = do
+	mudWorld <- liftIO . atomically . readTVar $ tvMudWorld
+	let maybePlayerContents = getPlayerContents identifier mudWorld
+	let maybeRoomContents = getRoomContents identifier mudWorld
+	let playerContents = maybe [] id maybePlayerContents
+	let roomContents = maybe [] id maybeRoomContents
+	let contents = playerContents ++ roomContents
+	let idAndNamesOfContents = 
+		concat 
+		. fmap (\(object,names) -> fmap (\name -> (object,name)) names) 
+		. catMaybes 
+		. fmap (\(mobject,mnames) -> (,) <$> mobject <*> mnames)
+		. fmap (\object -> (Just object, 
+			(mudWorld ^? ix object . ix FieldNames . _MudListOfString))) 
+		$ contents
+	let namesAndIdsOfContents = fmap (\(a,b) -> (b,a)) idAndNamesOfContents
+	let relevantNames = filter ((\(name,objectId) -> name == item)) namesAndIdsOfContents
+	let maybeObjectId = safeIndex 0 relevantNames
+	case maybeObjectId of
+		Just objectId -> do
+			playerOutput playerName ("The object seems to exist, <fix me!>")
+		Nothing -> do 
+			playerOutput playerName ("I don't see the " <> item <> ".") 
+		
+
+
+
 
 playerGo :: BS.ByteString -> Id -> TVar (Map.Map Id ProcessId) -> TVar MudWorld -> BS.ByteString -> Process ()
 playerGo playerName identifier tvActorMap tvMudWorld direction = do
