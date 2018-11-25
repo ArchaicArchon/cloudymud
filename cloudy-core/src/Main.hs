@@ -23,6 +23,7 @@ import qualified Data.Map as Map
 --import qualified Data.HashMap.Strict as HashMap
 import Network.CGI.Protocol (maybeRead)
 import System.IO hiding (catch)
+import System.Exit
 import Control.Lens
 
 
@@ -118,7 +119,7 @@ data Id
   | Item Integer
   deriving (Read,Show,Eq,Ord,Generic,Typeable)
 instance (Binary Id)
- -- identifier for actors/processes and objects in the database
+ -- identifier for/ actors/processes and objects in the database
 
 id2name :: Id -> Maybe BS.ByteString
 id2name (Player string) = Just string
@@ -247,16 +248,20 @@ main = do
   BS.putStrLn "Starting Cloudy Core Server (Version 0.0.1)...."
   Right t <- createTransport coreHostname corePort generateHostName defaultTCPParameters
   node <- newLocalNode t initRemoteTable
+  exitNow <- newEmptyMVar :: IO (MVar ())
   BS.putStrLn "We will now start the core...."
-  mainLoopPid <- forkProcess node initialization
+  mainLoopPid <- forkProcess node (initialization exitNow)
+  readMVar exitNow
+  BS.putStrLn "Cloudy Core is terminating now!"
+  exitSuccess  
   forever $ threadDelay (1000*1000*1000)
 
 
 nopActor :: ActorType
 nopActor identifier tvActorMap tvMudWorld = return ()
 
-initialization :: Process ()
-initialization = do
+initialization :: MVar () -> Process ()
+initialization exitNow = do
 	liftIO . BS.putStrLn $ "Connecting to Graph Database..."
 	-- dbPipe <- liftIO . connect $ databaseConfig
 	liftIO . BS.putStrLn $ "...Connected to Graph Database"
@@ -321,7 +326,7 @@ initialization = do
 	demultiplexPid <- spawnLocal $ demultiplex tvActorMap
 	register "demultiplex" demultiplexPid
 	liftIO . BS.putStrLn $ "Starting Storage Server..."
-	storagePid <- spawnLocal $ storage tvActorMap tvMudWorld
+	storagePid <- spawnLocal $ storage tvActorMap tvMudWorld exitNow
 	register "storage" storagePid 
 	liftIO . BS.putStrLn $ "Messaging all Actors that we are up"
 	actorMap <- liftIO . atomically . readTVar $ tvActorMap
@@ -333,14 +338,16 @@ notifyAllActors tvActorMap message = do
 	actorMap <- liftIO . atomically . readTVar $ tvActorMap
 	mapM_ (\pid -> send pid (EventNotify message)) actorMap 
 
-storage :: TVar (Map.Map Id ProcessId) -> TVar MudWorld -> Process ()
-storage tvActorMap tvMudWorld = do 
+storage :: TVar (Map.Map Id ProcessId) -> TVar MudWorld -> MVar () -> Process ()
+storage tvActorMap tvMudWorld exitNow = do 
 	receiveWait [match coreModified] 
         where
 	coreModified :: CoreModified -> Process ()
 	coreModified CoreModified = do
 		notifyAllActors tvActorMap "The Core has been MODIFIED!" 
-		storage tvActorMap tvMudWorld 
+		notifyAllActors tvActorMap "The Core is SHUTTING DOWN, NOW!!!!"
+		liftIO $ putMVar exitNow () 
+		storage tvActorMap tvMudWorld exitNow 
 
 -- TODO: removing playerMap needs to be done 
 demultiplex :: TVar (Map.Map Id ProcessId) -> Process ()
