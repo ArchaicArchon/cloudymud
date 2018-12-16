@@ -36,6 +36,7 @@ import GHC.Generics
 
 import Control.Concurrent
 import Control.Concurrent.STM
+import Control.Concurrent.STM.TVar
 import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Writer.Lazy
@@ -51,6 +52,8 @@ import qualified Data.Text as T
 import qualified Data.Map as Map
 import Data.Monoid
 import System.Microtimer
+
+import System.IO.Unsafe
 
 import Cloudy.Mud.Misc
 
@@ -99,6 +102,11 @@ bs2t bs = T.pack . BS.unpack $ bs
 databaseConfig :: BoltCfg
 databaseConfig = def {user="megabug",password="mudpass",socketTimeout=0}
 -}
+
+--Don't really want to have to thread this through everything cause it's so infrequent
+helpVar :: TVar (Map.Map BS.ByteString [BS.ByteString])
+{-# NOINLINE helpVar #-}
+helpVar = unsafePerformIO (newTVarIO (Map.fromList []))
 
 generateHostName :: NS.ServiceName -> (HostName, NS.ServiceName)
 generateHostName serviceName = (frontHostname,serviceName)
@@ -172,7 +180,7 @@ room0 = Map.fromList [
   (FieldId,MudId (Room "main" 0 0 0)),
   (FieldRoomTitle,MudString "Central Square"),
   (FieldRoomDescription,MudString "This is the center of the city\nIt all begins here..."),
-  (FieldContents,MudListOfId [(Player "megabug"),(Player player2name),(Item 100)]),
+  (FieldContents,MudListOfId [(Player "megabug"),(Player player2name),(Player player3name),(Item 100)]),
   (FieldExits,MudMapOfExits (Map.fromList []))
   ]
 
@@ -191,17 +199,21 @@ playerMegabug = Map.fromList [
   (FieldActor,MudString "player"),
   (FieldGroundDescription,MudString "megabug is standing here."),
   (FieldLocation,MudLocation (Location (Room "main" 0 0 0) "contents")),
+  (FieldNames,MudListOfString ["megabug"]),
   (FieldContents,MudListOfId [])
   ]
 
 player2name :: BS.ByteString
 player2name = "pinniped"
 
-player2 :: Map.Map MudField MudValue
-player2 = Map.fromList [
-  (FieldId,MudId (Player player2name)),
+player3name :: BS.ByteString
+player3name = "bungara"
+
+createPlayer :: BS.ByteString -> Map.Map MudField MudValue
+createPlayer playerName = Map.fromList [
+  (FieldId,MudId (Player playerName)),
   (FieldActor,MudString "player"),
-  (FieldGroundDescription,MudString (BS.append player2name " is standing here.")),
+  (FieldGroundDescription,MudString (BS.append playerName " is standing here.")),
   (FieldLocation,MudLocation (Location (Room "main" 0 0 0) "contents")),
   (FieldContents,MudListOfId [])
   ]
@@ -211,13 +223,13 @@ goldenOrb = Map.fromList [
   (FieldId,MudId (Item 100)),
   (FieldGroundDescription,MudString "the golden orb lies here."),
   (FieldLocation,MudLocation (Location (Room "main" 0 0 0) "contents")),
-  (FieldNames,MudListOfString ["gold","golden"])
+  (FieldNames,MudListOfString ["gold","golden","orb"])
   ]
 
 initMudWorld :: MudWorld 
 initMudWorld = Map.fromList . zip (fmap byId list) $ list
   where
-  list = [room0,room1,playerMegabug,player2,goldenOrb]
+  list = [room0,room1,playerMegabug,createPlayer player2name,createPlayer player3name,goldenOrb]
   byId :: Map.Map MudField MudValue -> Id 
   byId item = fromJust $ item ^? ix FieldId . _MudId 
 
