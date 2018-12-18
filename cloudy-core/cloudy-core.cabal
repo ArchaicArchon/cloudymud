@@ -43,7 +43,9 @@ executable cloudy-core
         text -any,
         microtimer -any,
         extra -any,
-        lens -any
+        lens -any,
+        directory -any,
+        filepath -any
 
 
   hs-source-dirs:      src

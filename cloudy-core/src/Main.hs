@@ -46,12 +46,15 @@ import qualified Control.Exception as Exception
 import Data.Either.Extra (eitherToMaybe)
 import Data.Maybe (catMaybes)
 import Data.Tuple (swap)
+import Data.List
 --import Database.Bolt
 import Data.Default
 import qualified Data.Text as T
 import qualified Data.Map as Map
 import Data.Monoid
 import System.Microtimer
+import System.Directory
+import System.FilePath
 
 import System.IO.Unsafe
 
@@ -344,6 +347,27 @@ initialization exitNow = do
 	actorMap <- liftIO . atomically . readTVar $ tvActorMap
 	mapM_ (\pid -> send pid (EventNotify "The Core is Up!")) actorMap 
 
+helpPath = "data" </> "help"
+
+isTxt string = isPrefixOf ("txt.") . reverse $ string
+
+removeTxt string = reverse . drop 4 . reverse $ string 
+
+loadHelpSystem :: Process ()
+loadHelpSystem = do
+	--supposes the current directory is the proper working directory
+	pwd <- liftIO $ getCurrentDirectory
+	let wd = pwd </> helpPath
+	ls <- liftIO $ listDirectory wd
+	let dataFiles = filter isTxt ls
+	filesExist <- liftIO $ mapM (\file -> doesFileExist (wd </> file)) dataFiles
+	let dataFilesExist = fmap fst . filter (\x->snd x) . zip dataFiles $ filesExist 
+	fileContents <- liftIO $ mapM (\file -> 
+		fmap (fmap BS.pack . lines) . readFile 
+		$ wd </> file) dataFilesExist
+	let helpMap = Map.fromList . zip (fmap (BS.pack . removeTxt) dataFilesExist) $ fileContents
+	liftIO . atomically . writeTVar helpVar $ helpMap  
+	--doesFileExist 
 
 notifyAllActors :: TVar (Map.Map Id ProcessId) -> BS.ByteString -> Process ()
 notifyAllActors tvActorMap message = do
