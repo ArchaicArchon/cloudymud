@@ -1,0 +1,2 @@
+Usage: go direction
+goes in the the direction you typed.

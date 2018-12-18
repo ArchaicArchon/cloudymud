@@ -1,0 +1,2 @@
+Usage: who
+Prints out a list of who is logged in.
